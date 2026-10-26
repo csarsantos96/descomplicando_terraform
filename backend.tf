@@ -1,7 +1,7 @@
 terraform {
   backend "s3" {
     bucket = "terraform-csarsantos96"
-    key    = "path/to/my/key"
+    key    = "cesar-backend.tfstate"
     region = "us-east-1"
   }
 }

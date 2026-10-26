@@ -11,13 +11,22 @@
                     <mxGeometry height="80" width="180" x="70" y="300" as="geometry"/>
                 </mxCell>
                 <mxCell id="MZnhZiFtF65Wo9OHfuie-2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;roundedPerimeter=1;" value="state file" vertex="1">
-                    <mxGeometry height="80" width="180" x="70" y="420" as="geometry"/>
+                    <mxGeometry height="80" width="180" x="490" y="70" as="geometry"/>
                 </mxCell>
                 <mxCell id="MZnhZiFtF65Wo9OHfuie-5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;roundedPerimeter=1;" value="my machine" vertex="1">
                     <mxGeometry height="50" width="340" x="-10" y="230" as="geometry"/>
                 </mxCell>
+                <mxCell id="akxFIwUn-hyAUBLmk94M-1" edge="1" parent="1" source="MZnhZiFtF65Wo9OHfuie-6" style="edgeStyle=none;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" target="MZnhZiFtF65Wo9OHfuie-2">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
                 <mxCell id="MZnhZiFtF65Wo9OHfuie-6" parent="1" style="rounded=1;whiteSpace=wrap;html=1;roundedPerimeter=1;" value="terraform" vertex="1">
                     <mxGeometry height="60" width="120" x="670" y="340" as="geometry"/>
+                </mxCell>
+                <mxCell id="akxFIwUn-hyAUBLmk94M-3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;roundedPerimeter=1;fillStyle=hatch;" value="" vertex="1">
+                    <mxGeometry height="210" width="400" x="380" y="5" as="geometry"/>
+                </mxCell>
+                <mxCell id="akxFIwUn-hyAUBLmk94M-4" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;b&gt;S3&lt;/b&gt;" vertex="1">
+                    <mxGeometry height="30" width="60" x="670" y="170" as="geometry"/>
                 </mxCell>
             </root>
         </mxGraphModel>
