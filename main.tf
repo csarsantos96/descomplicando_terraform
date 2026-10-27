@@ -16,7 +16,7 @@ data "aws_ami" "ubuntu" {
 
 resource "aws_instance" "example" {
   ami           = data.aws_ami.ubuntu.id
-  instance_type = "t3.micro"
+  instance_type = var.instance_type
 
   tags = {
     Name = "HelloWorld"
@@ -46,9 +46,9 @@ data "aws_ami" "ubuntu-west" {
 resource "aws_instance" "example-west" {
   provider = aws.west
   ami           = data.aws_ami.ubuntu-west.id 
-  instance_type = "t3.micro"
+  instance_type = var.instance_type
 
   tags = {
-    Name = "HelloWorld"
+    Name = "HelloWorld-west"
   }
 }

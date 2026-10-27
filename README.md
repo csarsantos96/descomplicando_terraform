@@ -225,3 +225,60 @@ Open these files with diagrams.net or a compatible draw.io editor to view and ed
 ## Current scope
 
 This is a focused learning lab with one EC2 resource and one AMI data source. The S3 bucket is an external prerequisite. Custom networking, modules, input variables, outputs, application provisioning, and automated delivery pipelines are not implemented yet.
+
+
+## Implementation update: multiple AWS regions
+
+This section updates the earlier implementation and scope descriptions while preserving the original notes above.
+
+- [`providers.tf`](providers.tf) now declares `hashicorp/aws` in `required_providers`, with the version constraint `~> 6.0`.
+- The default AWS provider explicitly uses `us-east-1`.
+- A second AWS provider uses the alias `west` and the region `us-west-1`.
+- [`main.tf`](main.tf) now declares a separate Ubuntu AMI lookup and EC2 instance for each region.
+
+| Region | Provider reference | AMI data source | EC2 resource |
+| --- | --- | --- | --- |
+| `us-east-1` | Default `aws` provider | `data.aws_ami.ubuntu` | `aws_instance.example` |
+| `us-west-1` | `aws.west` | `data.aws_ami.ubuntu-west` | `aws_instance.example-west` |
+
+Both instances use `t3.micro` and the `Name = "HelloWorld"` tag. Each AMI lookup selects the most recent matching Canonical Ubuntu Server 22.04 LTS AMD64 HVM image in its own region. The west-region data source and instance both explicitly select `provider = aws.west`.
+
+The current configuration therefore declares two EC2 instances and two AMI data sources. The explicit provider regions in `providers.tf` determine where these resources are managed; the earlier environment-variable example does not override those configured regions. Each region needs the default networking described in the prerequisites.
+
+The S3 backend remains in `us-east-1` and stores the state for this configuration, including both regions. The existing `terraform init`, `terraform validate`, and plan workflow applies to the combined configuration. Review a fresh plan to see the actions proposed for both regions.
+
+An empty [`variables.tf`](variables.tf) file has also been added to the working directory; no input variables are declared yet. These updates describe the files present in the project and do not confirm that the infrastructure has been applied in AWS.
+
+
+## Implementation update: instance type variable and regional tags
+
+This update supersedes the earlier notes about an empty `variables.tf`, the absence of input variables, and identical instance names. The previous sections are preserved as a record of the earlier configuration.
+
+[`variables.tf`](variables.tf) now declares the `instance_type` input variable:
+
+```hcl
+variable "instance_type" {
+  type        = string
+  description = "EC2 instance type for the web server"
+  default     = "t3.micro"
+  sensitive   = true
+}
+```
+
+Both EC2 resources in [`main.tf`](main.tf) now use `instance_type = var.instance_type`. The default remains `t3.micro`; overriding this variable changes the configured instance type for both regions.
+
+| EC2 resource | Region | Current `Name` tag |
+| --- | --- | --- |
+| `aws_instance.example` | `us-east-1` | `HelloWorld` |
+| `aws_instance.example-west` | `us-west-1` | `HelloWorld-west` |
+
+To use the default instance type, follow the existing plan workflow. To choose another type for both instances, generate and review a new plan with an explicit variable value:
+
+```bash
+terraform plan -var='instance_type=t3.small' -out=plano
+terraform show plano
+```
+
+The `sensitive = true` setting marks the variable for redaction in Terraform's normal CLI output. It does not encrypt the value or prevent it from being stored in state or saved plan files.
+
+The repository structure now also includes `providers.tf` for the AWS provider requirement and regional configurations, and `variables.tf` for the shared instance type input. The infrastructure still declares two EC2 instances and two AMI data sources; these notes document configuration changes without asserting that they have been applied in AWS.
