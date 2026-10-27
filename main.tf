@@ -22,3 +22,33 @@ resource "aws_instance" "example" {
     Name = "HelloWorld"
   }
 }
+
+
+
+
+data "aws_ami" "ubuntu-west" {
+  provider = aws.west
+  most_recent = true
+
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  owners = ["099720109477"] # Canonical
+}
+
+resource "aws_instance" "example-west" {
+  provider = aws.west
+  ami           = data.aws_ami.ubuntu-west.id 
+  instance_type = "t3.micro"
+
+  tags = {
+    Name = "HelloWorld"
+  }
+}
