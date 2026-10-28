@@ -226,7 +226,6 @@ Open these files with diagrams.net or a compatible draw.io editor to view and ed
 
 This is a focused learning lab with one EC2 resource and one AMI data source. The S3 bucket is an external prerequisite. Custom networking, modules, input variables, outputs, application provisioning, and automated delivery pipelines are not implemented yet.
 
-
 ## Implementation update: multiple AWS regions
 
 This section updates the earlier implementation and scope descriptions while preserving the original notes above.
@@ -248,7 +247,6 @@ The current configuration therefore declares two EC2 instances and two AMI data 
 The S3 backend remains in `us-east-1` and stores the state for this configuration, including both regions. The existing `terraform init`, `terraform validate`, and plan workflow applies to the combined configuration. Review a fresh plan to see the actions proposed for both regions.
 
 An empty [`variables.tf`](variables.tf) file has also been added to the working directory; no input variables are declared yet. These updates describe the files present in the project and do not confirm that the infrastructure has been applied in AWS.
-
 
 ## Implementation update: instance type variable and regional tags
 
