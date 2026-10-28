@@ -27,7 +27,7 @@ resource "aws_instance" "example" {
 
 
 data "aws_ami" "ubuntu-west" {
-  provider = aws.west
+  provider    = aws.west
   most_recent = true
 
   filter {
@@ -43,11 +43,17 @@ data "aws_ami" "ubuntu-west" {
 }
 
 resource "aws_instance" "example-west" {
-  provider = aws.west
-  ami           = data.aws_ami.ubuntu-west.id 
+  provider      = aws.west
+  ami           = data.aws_ami.ubuntu-west.id
   instance_type = var.instance_type
 
   tags = {
-    Name = "HelloWorld-west"
+    Name = "HelloWorld-west2"
   }
+}
+
+import {
+  provider = aws.west
+  to       = aws_instance.example-west
+  id       = "i-02e7b3afcf844b964"
 }

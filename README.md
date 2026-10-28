@@ -282,3 +282,96 @@ terraform show plano
 The `sensitive = true` setting marks the variable for redaction in Terraform's normal CLI output. It does not encrypt the value or prevent it from being stored in state or saved plan files.
 
 The repository structure now also includes `providers.tf` for the AWS provider requirement and regional configurations, and `variables.tf` for the shared instance type input. The infrastructure still declares two EC2 instances and two AMI data sources; these notes document configuration changes without asserting that they have been applied in AWS.
+
+## Implementation update: removing a resource from state with `removed`
+
+This update supersedes the earlier descriptions of two managed EC2 instances. The current [`main.tf`](main.tf) keeps `aws_instance.example` and its Ubuntu AMI lookup in `us-east-1`, and replaces the west-region instance declaration with:
+
+```hcl
+removed {
+  from = aws_instance.example-west
+
+  lifecycle {
+    destroy = false
+  }
+}
+```
+
+The west-region AMI lookup has also been removed. The `aws.west` provider configuration remains in [`providers.tf`](providers.tf).
+
+The `removed` block makes removal from state part of the reviewed plan:
+
+- `from` identifies the resource address, without quotes.
+- `destroy = false` tells Terraform to forget the resource while preserving the actual EC2 instance.
+- Removing the `resource` block alone normally plans destruction. Omitting `destroy = false` from `removed` also defaults to destruction.
+
+Use Terraform **1.7 or later** for this workflow. Replace the original resource declaration and remove references to it before planning. See HashiCorp's [resource removal documentation](https://developer.hashicorp.com/terraform/language/state/remove) and [`removed` reference](https://developer.hashicorp.com/terraform/language/block/removed).
+
+Generate and inspect a fresh plan:
+
+```bash
+terraform plan -out=plano
+terraform show plano
+```
+
+If `aws_instance.example-west` is in the current state, verify that its action is removal from state without destruction. Review all other actions too, then apply the reviewed plan with `terraform apply plano`. Editing the configuration alone does not update state.
+
+After applying, check `terraform state list`: the west-region address should be absent. Any preserved instance continues to incur AWS charges and is no longer managed or deleted by this configuration's `terraform destroy`. Managing it here again requires restoring its resource configuration and importing the existing instance.
+
+These notes describe the intended behavior; they do not confirm that the removal has been applied in AWS.
+
+## Implementation update: importing an existing EC2 instance
+
+This update supersedes the previous `removed` configuration. [`main.tf`](main.tf) now restores the west-region AMI lookup and `aws_instance.example-west` resource, with `provider = aws.west` and `Name = "HelloWorld-west2"`. It also declares:
+
+```hcl
+import {
+  provider = aws.west
+  to       = aws_instance.example-west
+  id       = "i-02e7b3afcf844b964"
+}
+```
+
+Import associates an existing cloud resource with a Terraform state address so Terraform can manage it. It can bring back an instance previously detached using `removed` with `destroy = false`.
+
+| Argument | Meaning in this project |
+| --- | --- |
+| `provider` | Uses the `aws.west` configuration for `us-west-1`. |
+| `to` | Identifies the destination resource address, without quotes. |
+| `id` | Identifies the existing EC2 instance in AWS. Use your own instance ID when adapting this example. |
+
+### Import through configuration
+
+The `import` block requires Terraform **1.5 or later**. Keep the destination `resource` block, remove any `removed` block for the same address, and confirm the account, region, and instance ID. An existing object should be bound to only one resource address.
+
+```bash
+terraform init
+terraform validate
+terraform plan -out=plano
+terraform show plano
+```
+
+Review the proposed import and any accompanying changes before running:
+
+```bash
+terraform apply plano
+terraform state show 'aws_instance.example-west'
+terraform plan
+```
+
+Import does not guarantee that the configuration matches the instance. In this project, `HelloWorld-west2` can propose a tag update, and selecting the latest Ubuntu AMI can propose replacement if it differs from the instance's AMI. Match the configuration to the existing instance when the intent is adoption without changes.
+
+After a successful import, the `import` block can remain as a record or be removed; retain the `resource` block. See HashiCorp's [import documentation](https://developer.hashicorp.com/terraform/language/import).
+
+### Alternative: CLI import
+
+With the destination resource configured to use `aws.west`, the CLI alternative is:
+
+```bash
+terraform import 'aws_instance.example-west' i-02e7b3afcf844b964
+terraform plan
+```
+
+Choose either workflow. The CLI command writes the association directly to state, without a plan approval step, and does not generate the resource configuration. Review the following plan before applying any changes. See the [`terraform import` command reference](https://developer.hashicorp.com/terraform/cli/commands/import).
+
+These examples document the current configuration; they do not confirm that the instance has been imported. Once managed, it is included in future Terraform updates and destruction plans.
