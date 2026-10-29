@@ -19,6 +19,6 @@ resource "aws_instance" "example" {
   instance_type = var.instance_type
 
   tags = {
-    Name = "servidor"
+    Name = "Servidor-${terraform.workspace}"
   }
 }

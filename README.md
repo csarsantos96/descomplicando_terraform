@@ -373,3 +373,97 @@ terraform plan
 Choose either workflow. The CLI command writes the association directly to state, without a plan approval step, and does not generate the resource configuration. Review the following plan before applying any changes. See the [`terraform import` command reference](https://developer.hashicorp.com/terraform/cli/commands/import).
 
 These examples document the current configuration; they do not confirm that the instance has been imported. Once managed, it is included in future Terraform updates and destruction plans.
+
+## Bulk import: discovering existing resources
+
+The [`aula-bulk-import/`](aula-bulk-import/) lab demonstrates discovery and import of multiple existing EC2 instances. Unlike CLI import, this workflow can generate both `resource` and `import` blocks. Use a Terraform CLI version supporting `terraform query` and an AWS provider version supporting the `aws_instance` list resource. See HashiCorp's [bulk import guide](https://developer.hashicorp.com/terraform/language/import/bulk).
+
+[`import.tfquery.hcl`](aula-bulk-import/import.tfquery.hcl) defines the query:
+
+```hcl
+list "aws_instance" "import_bulk" {
+  provider = aws
+  config {
+    region = "us-east-1"
+    filter {
+      name   = "tag:imported"
+      values = ["false"]
+    }
+    filter {
+      name   = "instance-state-name"
+      values = ["running"]
+    }
+  }
+}
+```
+
+Both filters must match. The `imported` tag is a lab convention, not Terraform's record of whether a resource is managed.
+
+Run the following from `aula-bulk-import/`, after adding the required AWS provider declaration and region configuration there (the root directory's `providers.tf` is not inherited):
+
+```bash
+terraform init
+terraform workspace show
+terraform query
+terraform query -generate-config-out=discovered.tf
+```
+
+The output path must not already exist. This lab already contains [`generated.tf`](aula-bulk-import/generated.tf), with EC2 resource declarations and imports using `identity`. Use `discovered.tf` only for a fresh discovery and reconcile it with the existing declarations before planning; do not keep duplicate declarations or import the same instance under multiple addresses.
+
+Review the generated attributes, identities, account, and region. The checked-in configuration sets `imported = "true"`, so importing may also propose updating that tag. Discovery and file generation alone do not import resources into state.
+
+Once the configuration contains only the intended resources and imports:
+
+```bash
+terraform fmt
+terraform validate
+terraform plan -out=bulk-import.tfplan
+terraform show bulk-import.tfplan
+terraform apply bulk-import.tfplan
+terraform state list
+```
+
+Apply only after reviewing all proposed imports and infrastructure changes. Keep the resource blocks afterward; import blocks can remain as a record.
+
+## CLI workspaces: separate states for the same configuration
+
+CLI workspaces let the same configuration use separate states, for example `dev` and `prod`. Every initialized configuration has a `default` workspace. Creating a workspace creates a separate state context; it does not copy existing resources or change AWS credentials and provider regions. See [HashiCorp's workspace documentation](https://developer.hashicorp.com/terraform/cli/workspaces).
+
+From the repository root:
+
+```bash
+terraform init
+terraform workspace list
+terraform workspace new dev
+terraform workspace show
+terraform plan -out=dev.tfplan
+terraform show dev.tfplan
+terraform apply dev.tfplan
+terraform workspace select default
+```
+
+Use `terraform workspace select dev` for a workspace that already exists. A fresh workspace normally proposes creating its own resources. Confirm the selected workspace before planning, importing, applying, or destroying resources.
+
+The current [`main.tf`](main.tf) names the EC2 instance using:
+
+```hcl
+tags = {
+  Name = "Servidor-${terraform.workspace}"
+}
+```
+
+This produces names such as `Servidor-dev` and `Servidor-prod`. The instance type comes from `var.instance_type`; selecting a workspace does not automatically select a variable file. This root configuration supersedes the earlier two-instance and west-region import examples.
+
+### Workspace state paths in S3
+
+The current [`backend.tf`](backend.tf) uses `key = "cesar-backend-workspace.tfstate"` and `use_lockfile = true`, superseding the earlier backend example. With the default `workspace_key_prefix`, the objects in bucket `terraform-csarsantos96` are:
+
+| Workspace | S3 state object key |
+| --- | --- |
+| `default` | `cesar-backend-workspace.tfstate` |
+| `dev` | `env:/dev/cesar-backend-workspace.tfstate` |
+| `prod` | `env:/prod/cesar-backend-workspace.tfstate` |
+
+S3 locking requires access to each workspace's `.tflock` object as well as its state. See the [S3 backend reference](https://developer.hashicorp.com/terraform/language/backend/s3). If moving an existing state from the old key, back it up and use the state migration workflow described above.
+
+Workspaces separate state, but do not provide separate AWS accounts or access controls. For cleanup, select the intended workspace, review and run `terraform destroy`, switch to another workspace, and then run `terraform workspace delete dev` for the emptied workspace. The `default` workspace cannot be deleted.
