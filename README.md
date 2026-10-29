@@ -366,7 +366,7 @@ After a successful import, the `import` block can remain as a record or be remov
 With the destination resource configured to use `aws.west`, the CLI alternative is:
 
 ```bash
-terraform import 'aws_instance.example-west' i-02e7b3afcf844b964
+terraform import 'aws_instance.example-west' i-02f7b5ahcf184b926
 terraform plan
 ```
 
